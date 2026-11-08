@@ -5,6 +5,7 @@ import { UserEntity } from './user.entity.js';
 import { UserService } from './user-service.interface.js';
 import { Logger } from '../../libs/logger/index.js';
 import { Component } from '../../types/index.js';
+import type { OfferEntity } from '../offer/offer.entity.js';
 
 @injectable()
 export class DefaultUserService implements UserService {
@@ -23,8 +24,8 @@ export class DefaultUserService implements UserService {
     return result;
   }
 
-  public async findById(id: string): Promise<DocumentType<UserEntity> | null> {
-    return this.userModel.findById(id).exec();
+  public async findById(userId: string): Promise<DocumentType<UserEntity> | null> {
+    return this.userModel.findById(userId).exec();
   }
 
   public async findByEmail(email: string): Promise<DocumentType<UserEntity> | null> {
@@ -39,5 +40,26 @@ export class DefaultUserService implements UserService {
     }
 
     return this.create(dto, salt);
+  }
+
+  public async findFavorites(userId: string): Promise<DocumentType<OfferEntity>[]> {
+    const user = await this.userModel
+      .findById(userId)
+      .populate<{ favorites: DocumentType<OfferEntity>[] }>('favorites')
+      .exec();
+
+    return user?.favorites ?? [];
+  }
+
+  public async addFavorite(userId: string, offerId: string): Promise<DocumentType<UserEntity> | null> {
+    return this.userModel
+      .findByIdAndUpdate(userId, { $addToSet: { favorites: offerId } }, { new: true })
+      .exec();
+  }
+
+  public async removeFavorite(userId: string, offerId: string): Promise<DocumentType<UserEntity> | null> {
+    return this.userModel
+      .findByIdAndUpdate(userId, { $pull: { favorites: offerId } }, { new: true })
+      .exec();
   }
 }
