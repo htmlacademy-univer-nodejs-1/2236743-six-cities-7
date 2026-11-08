@@ -4,6 +4,7 @@ import { createOffer, getErrorMessage } from '../../shared/helpers/index.js';
 import { DatabaseClient, MongoDatabaseClient } from '../../shared/libs/database-client/index.js';
 import { TSVFileReader } from '../../shared/libs/file-reader/tsv-file-reader.js';
 import { ConsoleLogger, Logger } from '../../shared/libs/logger/index.js';
+import { CommentModel } from '../../shared/modules/comment/index.js';
 import { DefaultOfferService, OfferModel, OfferService } from '../../shared/modules/offer/index.js';
 import { DefaultUserService, UserModel, UserService } from '../../shared/modules/user/index.js';
 import { Offer } from '../../shared/types/index.js';
@@ -20,18 +21,30 @@ export class ImportCommand implements Command {
     this.logger = new ConsoleLogger();
     this.databaseClient = new MongoDatabaseClient(this.logger);
     this.userService = new DefaultUserService(this.logger, UserModel);
-    this.offerService = new DefaultOfferService(this.logger, OfferModel);
+    this.offerService = new DefaultOfferService(this.logger, OfferModel, CommentModel);
   }
 
-  private async saveOffer({ author, ...offer }: Offer, salt: string): Promise<void> {
+  private async saveOffer(offer: Offer, salt: string): Promise<void> {
     const user = await this.userService.findOrCreate({
-      ...author,
+      ...offer.author,
       password: DEFAULT_USER_PASSWORD,
     }, salt);
 
     await this.offerService.create({
-      ...offer,
+      title: offer.title,
+      description: offer.description,
+      postDate: offer.postDate,
+      city: offer.city,
+      previewImage: offer.previewImage,
+      images: offer.images,
+      isPremium: offer.isPremium,
+      type: offer.type,
+      bedrooms: offer.bedrooms,
+      maxAdults: offer.maxAdults,
+      price: offer.price,
+      goods: offer.goods,
       authorId: user.id,
+      location: offer.location,
     });
   }
 
